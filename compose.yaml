@@ -1,0 +1,37 @@
+# Local services for counthouse-api.
+#
+#   docker compose up -d        start the database (the API runs from the IDE)
+#   docker compose down         stop it, the data stays in the volume
+#   docker compose down -v      stop it and delete the data (a fresh database)
+#   docker compose --profile full up --build
+#                               also build and run the API image, see the "api" service
+#
+# Compose reads values from a file named .env next to this file (copy .env.example to .env).
+
+services:
+  db:
+    # Use the same Postgres major version as production (Neon). Check it when you create the Neon
+    # project and change this line if you pick another one. Postgres 18 images store data in a
+    # different directory, so the volume line below changes too.
+    image: postgres:17
+    environment:
+      POSTGRES_DB: counthouse
+      POSTGRES_USER: counthouse
+      # The part after ":-" is the default when DB_PASSWORD is not set. It is for local
+      # development only. Never reuse it anywhere else.
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # Bound to 127.0.0.1 so only this computer can connect, not the whole network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # A named volume keeps the data when the container is removed.
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # "healthy" means Postgres accepts connections. Other services can wait for it.
+      test: ["CMD-SHELL", "pg_isready -U counthouse -d counthouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db-data:
